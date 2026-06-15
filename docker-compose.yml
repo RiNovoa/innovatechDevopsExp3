@@ -1,0 +1,72 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: academia-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - academia-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  back-despachos:
+    build: ./backend/back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
+    image: innovatech-back-despachos:1.0
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - academia-net
+    restart: unless-stopped
+
+  back-ventas:
+    build: ./backend/back-Ventas_SpringBoot/Springboot-API-REST
+    image: innovatech-back-ventas:1.0
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - academia-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/front_despacho
+      args:
+        VITE_API_URL: http://localhost:8081
+    image: innovatech-frontend:1.0
+    ports:
+      - "3000:80"
+    depends_on:
+      - back-despachos
+      - back-ventas
+    networks:
+      - academia-net
+
+volumes:
+  mysql_data:
+    name: innovatech_mysql_data
+
+networks:
+  academia-net:
+    driver: bridge

@@ -1,0 +1,30 @@
+# Archivos de compilación y dependencias
+target/
+.mvn/
+.m2/
+
+# Archivos de IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Archivos de control de versiones
+.git/
+.gitignore
+.gitattributes
+
+# Logs
+*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Variables de entorno
+.env
+
+# Otros
+*.md
