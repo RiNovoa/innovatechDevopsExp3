@@ -1,6 +1,6 @@
 
 
-# AWS Infrastructure with Terraform & CI/CD - ECS Fargate (ProyectoSemestral2)
+# AWS Infrastructure with Terraform & CI/CD - ECS Fargate (ProyectoSemestral3)
 
 ## 📝 Descripción
 
