@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-ventas
+  name: backend-despachos
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: backend-ventas
+      app: backend-despachos
   template:
     metadata:
       labels:
-        app: backend-ventas
+        app: backend-despachos
     spec:
       containers:
-        - name: back-ventas
-          image: ventas-placeholder:latest
+        - name: back-despachos
+          image: despachos-placeholder:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 8081
           env:
             - name: SERVER_PORT
-              value: "8080"
+              value: "8081"
             - name: SPRING_DATASOURCE_URL
               valueFrom:
                 configMapKeyRef:
@@ -46,24 +46,24 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
+              port: 8081
             initialDelaySeconds: 45
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
+              port: 8081
             initialDelaySeconds: 70
             periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-ventas
+  name: backend-despachos
 spec:
   selector:
-    app: backend-ventas
+    app: backend-despachos
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8081
+      targetPort: 8081
   type: ClusterIP
