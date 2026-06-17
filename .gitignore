@@ -1,18 +1,20 @@
+# Variables y secretos
 .env
 .env.local
-.env.*.local
+*.pem
 
-**/target/
-**/node_modules/
-**/dist/
-**/build/
-
-.vscode/
-*.log
-*.class
-
+# Terraform local
 *.tfstate
 *.tfstate.backup
 *.tfstate.*.backup
 .terraform/
 .terraform.lock.hcl
+
+# Builds
+**/target/
+**/node_modules/
+**/dist/
+
+# Sistema/editor
+.DS_Store
+.vscode/
