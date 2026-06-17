@@ -1,4 +1,4 @@
-name: CI/CD Innovatech Deploy
+name: CI/CD Innovatech EP3 EKS
 
 on:
   push:
@@ -7,58 +7,118 @@ on:
 
 jobs:
   build-push-deploy:
-    name: Construir, Subir a ECR y Desplegar
+    name: Build, push a ECR y deploy a EKS
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout del código
-        uses: actions/checkout@v3
+    env:
+      AWS_REGION: us-east-1
+      CLUSTER_NAME: innovatech-ep3-eks
+      PROJECT_NAME: innovatech-ep3
 
-      - name: Configurar credenciales de AWS
-        uses: aws-actions/configure-aws-credentials@v2
+    steps:
+      - name: Checkout del codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Iniciar sesión en Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Login con Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-# 1. CONSTRUIR Y SUBIR BACK-VENTAS
-      - name: Build y Push Back-Ventas
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: innovatech-ep2-backend
-          IMAGE_TAG: ventas 
+      - name: Obtener Account ID y URLs ECR
         run: |
-          cd backend/back-Ventas_SpringBoot/Springboot-API-REST
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
+          echo "FRONTEND_ECR=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com/${PROJECT_NAME}-frontend" >> $GITHUB_ENV
+          echo "VENTAS_ECR=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com/${PROJECT_NAME}-ventas" >> $GITHUB_ENV
+          echo "DESPACHOS_ECR=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com/${PROJECT_NAME}-despachos" >> $GITHUB_ENV
 
-      # 2. CONSTRUIR Y SUBIR BACK-DESPACHOS
-      - name: Build y Push Back-Despachos
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: innovatech-ep2-backend
-          IMAGE_TAG: despachos 
+      - name: Build Backend Ventas
         run: |
-          cd backend/back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $VENTAS_ECR:${GITHUB_SHA} \
+            -t $VENTAS_ECR:latest \
+            ./backend/back-Ventas_SpringBoot/Springboot-API-REST \
+            --load
 
-# 3. CONSTRUIR Y SUBIR FRONTEND
-      - name: Build y Push Frontend
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: innovatech-ep2-frontend
-          IMAGE_TAG: latest
+      - name: Push Backend Ventas
         run: |
-          cd frontend/front_despacho # <--- ¡Aquí está la corrección de la ruta!
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-    # 4. DESPLIEGUE EN ECS (El paso clave del CD)
-      - name: Forzar nuevo despliegue en ECS
+          docker push $VENTAS_ECR:${GITHUB_SHA}
+          docker push $VENTAS_ECR:latest
+
+      - name: Build Backend Despachos
         run: |
-          aws ecs update-service --cluster innovatech-ep2-cluster --service app --force-new-deployment
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $DESPACHOS_ECR:${GITHUB_SHA} \
+            -t $DESPACHOS_ECR:latest \
+            ./backend/back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO \
+            --load
+
+      - name: Push Backend Despachos
+        run: |
+          docker push $DESPACHOS_ECR:${GITHUB_SHA}
+          docker push $DESPACHOS_ECR:latest
+
+      - name: Build Frontend
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $FRONTEND_ECR:${GITHUB_SHA} \
+            -t $FRONTEND_ECR:latest \
+            ./frontend/front_despacho \
+            --load
+
+      - name: Push Frontend
+        run: |
+          docker push $FRONTEND_ECR:${GITHUB_SHA}
+          docker push $FRONTEND_ECR:latest
+
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Conectar kubectl con EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name $CLUSTER_NAME
+
+      - name: Aplicar manifiestos Kubernetes
+        run: |
+          kubectl apply -f infra/k8s/mysql.yml
+          kubectl apply -f infra/k8s/backend-ventas.yml
+          kubectl apply -f infra/k8s/backend-despachos.yml
+          kubectl apply -f infra/k8s/frontend.yml
+          kubectl apply -f infra/k8s/hpa.yml
+
+      - name: Actualizar imagen Backend Ventas
+        run: |
+          kubectl set image deployment/backend-ventas \
+            back-ventas=$VENTAS_ECR:${GITHUB_SHA}
+
+      - name: Actualizar imagen Backend Despachos
+        run: |
+          kubectl set image deployment/backend-despachos \
+            back-despachos=$DESPACHOS_ECR:${GITHUB_SHA}
+
+      - name: Actualizar imagen Frontend
+        run: |
+          kubectl set image deployment/frontend \
+            frontend=$FRONTEND_ECR:${GITHUB_SHA}
+
+      - name: Esperar rollout
+        run: |
+          kubectl rollout status deployment/backend-ventas --timeout=300s
+          kubectl rollout status deployment/backend-despachos --timeout=300s
+          kubectl rollout status deployment/frontend --timeout=300s
+
+      - name: Mostrar estado final del cluster
+        run: |
+          kubectl get pods -o wide
+          kubectl get svc -o wide
+          kubectl get hpa
