@@ -1,7 +1,8 @@
-# Variables y secretos
+# Variables locales y secretos
 .env
-.env.local
+.env.*
 *.pem
+infra/k8s/secret.yml
 
 # Terraform local
 *.tfstate
