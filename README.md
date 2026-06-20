@@ -112,47 +112,112 @@ La infraestructura se encuentra separada en distintos archivos `.tf` para mejora
 
 ---
 
-## 🔐 Manejo de credenciales y Secrets
+## 🔑 Configurar credenciales AWS Academy y validar acceso al clúster
 
-El proyecto **no utiliza archivos `.env`** para almacenar credenciales.
+En AWS Academy, copiar las credenciales temporales del **Learner Lab** y configurarlas localmente.
 
-Las credenciales sensibles se manejan mediante:
+Primero ejecutar:
 
-1. **GitHub Secrets**, utilizados por el pipeline CI/CD.
-2. **Kubernetes Secret**, aplicado dentro del clúster EKS.
-3. Archivo `infra/k8s/secret.example.yml`, utilizado solo como plantilla sin credenciales reales.
-
-El archivo real:
-
-```text
-infra/k8s/secret.yml
+```bash
+aws configure
 ```
 
-no se sube al repositorio porque está incluido en `.gitignore`.
-
-### Secrets requeridos en GitHub Actions
-
-En GitHub se deben configurar los siguientes secrets:
+Ingresar los datos solicitados:
 
 ```text
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_SESSION_TOKEN
+AWS Access Key ID: TU_ACCESS_KEY
+AWS Secret Access Key: TU_SECRET_KEY
+Default region name: us-east-1
+Default output format: json
+```
+
+Luego configurar el token temporal del laboratorio:
+
+```bash
+aws configure set aws_session_token "TOKEN_DEL_LAB"
+```
+
+Validar que las credenciales quedaron correctamente configuradas:
+
+```bash
+aws sts get-caller-identity
+```
+
+Si el comando responde con el ID de la cuenta AWS Academy, la conexión con AWS está funcionando correctamente.
+
+---
+
+## 🔌 Conectar kubectl con el clúster EKS
+
+Después de crear la infraestructura con Terraform, se debe conectar `kubectl` al clúster EKS:
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name innovatech-ep3-eks
+```
+
+Validar que los nodos del clúster estén disponibles:
+
+```bash
+kubectl get nodes
+```
+
+Resultado esperado:
+
+```text
+NAME                          STATUS   ROLES    AGE   VERSION
+ip-10-0-10-xxx.ec2.internal   Ready    <none>   5m    v1.xx
+ip-10-0-20-xxx.ec2.internal   Ready    <none>   5m    v1.xx
+```
+
+---
+
+## 🔐 Comprobar Kubernetes Secret
+
+El proyecto no utiliza archivos `.env` para credenciales sensibles.  
+Las credenciales de MySQL se crean como un **Kubernetes Secret** llamado `mysql-secret`.
+
+Después de ejecutar el pipeline de GitHub Actions, se puede comprobar que el Secret fue creado correctamente con:
+
+```bash
+kubectl get secret mysql-secret
+```
+
+Resultado esperado:
+
+```text
+NAME           TYPE     DATA   AGE
+mysql-secret   Opaque   3      14m
+```
+
+El valor `DATA = 3` indica que el Secret contiene tres claves:
+
+```text
 MYSQL_ROOT_PASSWORD
-MYSQL_USER
-MYSQL_PASSWORD
+SPRING_DATASOURCE_USERNAME
+SPRING_DATASOURCE_PASSWORD
 ```
 
-Ejemplo de valores para MySQL en ambiente de prueba:
+Para ver las claves sin mostrar las contraseñas reales:
+
+```bash
+kubectl describe secret mysql-secret
+```
+
+Resultado esperado:
 
 ```text
-MYSQL_ROOT_PASSWORD=root123
-MYSQL_USER=root
-MYSQL_PASSWORD=root123
+Name:         mysql-secret
+Namespace:    default
+Type:         Opaque
+
+Data
+====
+MYSQL_ROOT_PASSWORD:             7 bytes
+SPRING_DATASOURCE_USERNAME:      4 bytes
+SPRING_DATASOURCE_PASSWORD:      7 bytes
 ```
 
-Durante el pipeline, GitHub Actions genera temporalmente el archivo `secret.yml`, lo aplica al clúster como Kubernetes Secret y luego el archivo desaparece junto con la máquina temporal del workflow.
-
+Este comando permite demostrar que las credenciales fueron cargadas en Kubernetes sin exponer sus valores reales.
 ---
 
 ## 📦 Manifiestos Kubernetes
