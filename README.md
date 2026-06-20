@@ -2,22 +2,22 @@
 
 ## 📝 Descripción
 
-Este proyecto implementa el despliegue de una aplicación de microservicios en **Amazon Web Services (AWS)** utilizando **Terraform** como herramienta de Infraestructura como Código e **Amazon EKS** como plataforma de orquestación de contenedores.
+Infraestructura y despliegue automatizado en **AWS** utilizando **Terraform**, **Amazon EKS**, **Amazon ECR**, **Kubernetes** y **GitHub Actions**.
 
-La solución despliega los siguientes componentes:
+Este proyecto despliega una aplicación compuesta por:
 
-- Frontend desarrollado con React + Vite servido mediante Nginx.
-- Backend de Ventas desarrollado con Spring Boot.
-- Backend de Despachos desarrollado con Spring Boot.
-- Base de datos MySQL desplegada dentro del clúster Kubernetes.
-- Repositorios privados en Amazon ECR para almacenar las imágenes Docker.
-- Pipeline CI/CD con GitHub Actions para construir, subir y desplegar imágenes.
-- Horizontal Pod Autoscaler para escalar servicios según consumo de CPU.
-- Kubernetes Secret para el manejo de credenciales sensibles.
+- Frontend React + Vite servido con Nginx.
+- Backend Ventas desarrollado con Spring Boot.
+- Backend Despachos desarrollado con Spring Boot.
+- Base de datos MySQL dentro del clúster Kubernetes.
+- Repositorios Amazon ECR para almacenar imágenes Docker.
+- Pipeline CI/CD para build, push y deploy automático.
+- HPA para escalamiento automático por CPU.
+- Kubernetes Secret para credenciales sensibles.
 
 ---
 
-## 🧭 Estructura del Proyecto
+## 🧭 Estructura del proyecto
 
 ```text
 innovatechDevopsExp3/
@@ -37,7 +37,8 @@ innovatechDevopsExp3/
 │   │   ├── security.tf
 │   │   ├── eks.tf
 │   │   ├── ecr.tf
-│   │   └── outputs.tf
+│   │   ├── outputs.tf
+│   │   └── .terraform.lock.hcl
 │   └── k8s/
 │       ├── secret.example.yml
 │       ├── mysql.yml
@@ -54,50 +55,30 @@ innovatechDevopsExp3/
 
 ---
 
-## 🚀 Tecnologías Utilizadas
+## 🚀 Requisitos
 
-- AWS Academy Learner Lab
-- Amazon EKS
-- Amazon ECR
-- Amazon EC2 Node Group
-- Terraform
-- Kubernetes
-- Docker
-- GitHub Actions
-- Spring Boot
-- React + Vite
-- Nginx
-- MySQL
-- Metrics Server
-- Horizontal Pod Autoscaler
+Para ejecutar el proyecto se necesita:
+
+- Terraform CLI instalado.
+- AWS CLI instalado.
+- kubectl instalado.
+- Docker instalado.
+- Git instalado.
+- Cuenta AWS Academy Learner Lab activa.
+- Repositorio GitHub con Actions habilitado.
+- Credenciales temporales de AWS Academy.
+- Secrets configurados en GitHub Actions.
 
 ---
 
-## ⚙️ Arquitectura Implementada
+## 📦 ¿Qué despliega este proyecto?
 
-La arquitectura se basa en un clúster **Amazon EKS** creado mediante Terraform.
+### Terraform
 
-### Componentes principales
-
-| Componente | Tecnología | Descripción |
-| --- | --- | --- |
-| Frontend | React + Vite + Nginx | Interfaz web expuesta públicamente |
-| Backend Ventas | Spring Boot | API REST para gestión de ventas |
-| Backend Despachos | Spring Boot | API REST para gestión de despachos |
-| Base de datos | MySQL 8.0 | Base de datos interna del clúster |
-| Orquestación | Amazon EKS | Administración de contenedores |
-| Registro de imágenes | Amazon ECR | Almacenamiento privado de imágenes Docker |
-| CI/CD | GitHub Actions | Build, push y deploy automático |
-| Autoscaling | Kubernetes HPA | Escalamiento automático por CPU |
-
----
-
-## ☁️ Infraestructura AWS
-
-Terraform crea los siguientes recursos:
+Terraform crea la infraestructura base en AWS:
 
 - VPC personalizada.
-- Dos subredes públicas en distintas zonas de disponibilidad.
+- Dos subredes públicas.
 - Internet Gateway.
 - Route Table pública.
 - Security Group para EKS.
@@ -108,215 +89,71 @@ Terraform crea los siguientes recursos:
   - `innovatech-ep3-ventas`
   - `innovatech-ep3-despachos`
 
-La infraestructura se encuentra separada en distintos archivos `.tf` para mejorar la organización y mantenibilidad del proyecto.
+### Kubernetes
+
+Kubernetes despliega los componentes de la aplicación dentro de EKS:
+
+- Deployment y Service para MySQL.
+- Deployment y Service para backend de ventas.
+- Deployment y Service para backend de despachos.
+- Deployment y Service tipo LoadBalancer para frontend.
+- Horizontal Pod Autoscaler.
+- Kubernetes Secret para credenciales de MySQL.
+
+### GitHub Actions
+
+El pipeline CI/CD realiza:
+
+- Build de imágenes Docker.
+- Push de imágenes a Amazon ECR.
+- Conexión con Amazon EKS.
+- Creación del Kubernetes Secret.
+- Aplicación de manifiestos Kubernetes.
+- Actualización de imágenes en los Deployments.
+- Validación del rollout.
 
 ---
 
-## 🔑 Configurar credenciales AWS Academy y validar acceso al clúster
+## ⚙️ Flujo de uso
 
-En AWS Academy, copiar las credenciales temporales del **Learner Lab** y configurarlas localmente.
-
-Primero ejecutar:
-
-```bash
-aws configure
-```
-
-Ingresar los datos solicitados:
+El orden correcto para levantar el sistema es:
 
 ```text
-AWS Access Key ID: TU_ACCESS_KEY
-AWS Secret Access Key: TU_SECRET_KEY
-Default region name: us-east-1
-Default output format: json
-```
-
-Luego configurar el token temporal del laboratorio:
-
-```bash
-aws configure set aws_session_token "TOKEN_DEL_LAB"
-```
-
-Validar que las credenciales quedaron correctamente configuradas:
-
-```bash
-aws sts get-caller-identity
-```
-
-Si el comando responde con el ID de la cuenta AWS Academy, la conexión con AWS está funcionando correctamente.
-
----
-
-## 🔌 Conectar kubectl con el clúster EKS
-
-Después de crear la infraestructura con Terraform, se debe conectar `kubectl` al clúster EKS:
-
-```bash
-aws eks update-kubeconfig --region us-east-1 --name innovatech-ep3-eks
-```
-
-Validar que los nodos del clúster estén disponibles:
-
-```bash
-kubectl get nodes
-```
-
-Resultado esperado:
-
-```text
-NAME                          STATUS   ROLES    AGE   VERSION
-ip-10-0-10-xxx.ec2.internal   Ready    <none>   5m    v1.xx
-ip-10-0-20-xxx.ec2.internal   Ready    <none>   5m    v1.xx
+1. Iniciar AWS Academy Learner Lab
+2. Configurar credenciales AWS locales
+3. Crear infraestructura con Terraform
+4. Conectar kubectl con EKS
+5. Instalar Metrics Server
+6. Configurar GitHub Secrets
+7. Ejecutar pipeline desde rama deploy
+8. Validar Pods, Services, HPA, Logs y Frontend
 ```
 
 ---
 
-## 🔐 Comprobar Kubernetes Secret
+## 1️⃣ Iniciar AWS Academy Learner Lab
 
-El proyecto no utiliza archivos `.env` para credenciales sensibles.  
-Las credenciales de MySQL se crean como un **Kubernetes Secret** llamado `mysql-secret`.
-
-Después de ejecutar el pipeline de GitHub Actions, se puede comprobar que el Secret fue creado correctamente con:
-
-```bash
-kubectl get secret mysql-secret
-```
-
-Resultado esperado:
+Ingresar a AWS Academy y presionar:
 
 ```text
-NAME           TYPE     DATA   AGE
-mysql-secret   Opaque   3      14m
+Start Lab
 ```
 
-El valor `DATA = 3` indica que el Secret contiene tres claves:
+Luego copiar las credenciales temporales del laboratorio:
 
 ```text
-MYSQL_ROOT_PASSWORD
-SPRING_DATASOURCE_USERNAME
-SPRING_DATASOURCE_PASSWORD
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_SESSION_TOKEN
 ```
 
-Para ver las claves sin mostrar las contraseñas reales:
-
-```bash
-kubectl describe secret mysql-secret
-```
-
-Resultado esperado:
-
-```text
-Name:         mysql-secret
-Namespace:    default
-Type:         Opaque
-
-Data
-====
-MYSQL_ROOT_PASSWORD:             7 bytes
-SPRING_DATASOURCE_USERNAME:      4 bytes
-SPRING_DATASOURCE_PASSWORD:      7 bytes
-```
-
-Este comando permite demostrar que las credenciales fueron cargadas en Kubernetes sin exponer sus valores reales.
----
-
-## 📦 Manifiestos Kubernetes
-
-Los manifiestos se encuentran en:
-
-```text
-infra/k8s/
-```
-
-| Archivo | Función |
-| --- | --- |
-| `secret.example.yml` | Plantilla del Secret sin credenciales reales |
-| `mysql.yml` | ConfigMap, Deployment y Service de MySQL |
-| `backend-ventas.yml` | Deployment y Service del backend de ventas |
-| `backend-despachos.yml` | Deployment y Service del backend de despachos |
-| `frontend.yml` | Deployment y Service LoadBalancer del frontend |
-| `hpa.yml` | Horizontal Pod Autoscaler de frontend y backends |
+Estas credenciales se usan localmente y también en GitHub Actions.
 
 ---
 
-## 🔄 Pipeline CI/CD
+## 2️⃣ Configurar credenciales AWS localmente
 
-El pipeline se encuentra en:
-
-```text
-.github/workflows/deploy.yml
-```
-
-Se ejecuta automáticamente al hacer `push` a la rama:
-
-```text
-deploy
-```
-
-### Flujo del pipeline
-
-1. Descarga el código del repositorio.
-2. Configura credenciales temporales de AWS Academy.
-3. Inicia sesión en Amazon ECR.
-4. Construye la imagen Docker del backend de ventas.
-5. Sube la imagen del backend de ventas a ECR.
-6. Construye la imagen Docker del backend de despachos.
-7. Sube la imagen del backend de despachos a ECR.
-8. Construye la imagen Docker del frontend.
-9. Sube la imagen del frontend a ECR.
-10. Conecta `kubectl` con el clúster EKS.
-11. Crea el Kubernetes Secret desde GitHub Secrets.
-12. Aplica los manifiestos Kubernetes.
-13. Actualiza las imágenes de los Deployments.
-14. Espera el rollout de los servicios.
-15. Muestra el estado final de Pods, Services y HPA.
-
----
-
-## 🌿 Flujo de ramas
-
-El proyecto utiliza las siguientes ramas:
-
-| Rama | Uso |
-| --- | --- |
-| `main` | Versión estable final |
-| `develop` | Integración de cambios |
-| `deploy` | Rama que dispara GitHub Actions |
-| `feature/*` | Desarrollo de nuevas funcionalidades |
-| `fix/*` | Correcciones puntuales |
-
-Flujo recomendado:
-
-```bash
-git checkout develop
-git pull origin develop
-
-git checkout deploy
-git pull origin deploy
-git merge develop
-git push origin deploy
-```
-
----
-
-## 🛠️ Requisitos previos
-
-Antes de ejecutar el proyecto se necesita:
-
-- AWS CLI instalado.
-- Terraform instalado.
-- kubectl instalado.
-- Docker instalado.
-- Git instalado.
-- Cuenta AWS Academy Learner Lab activa.
-- Repositorio GitHub con Actions habilitado.
-- Secrets configurados en GitHub Actions.
-
----
-
-## 🔑 Configurar credenciales AWS Academy
-
-En AWS Academy, copiar las credenciales del Learner Lab y configurarlas localmente.
+Ejecutar:
 
 ```bash
 aws configure
@@ -325,8 +162,8 @@ aws configure
 Ingresar:
 
 ```text
-AWS Access Key ID
-AWS Secret Access Key
+AWS Access Key ID: TU_ACCESS_KEY
+AWS Secret Access Key: TU_SECRET_KEY
 Default region name: us-east-1
 Default output format: json
 ```
@@ -343,35 +180,72 @@ Validar conexión:
 aws sts get-caller-identity
 ```
 
+Resultado esperado:
+
+```json
+{
+    "UserId": "...",
+    "Account": "...",
+    "Arn": "..."
+}
+```
+
 ---
 
-## 🏗️ Crear infraestructura con Terraform
+## 3️⃣ Crear infraestructura con Terraform
 
 Desde la raíz del proyecto:
 
 ```bash
 cd infra/terraform
+```
+
+Inicializar Terraform:
+
+```bash
 terraform init
+```
+
+Formatear archivos:
+
+```bash
+terraform fmt
+```
+
+Validar configuración:
+
+```bash
 terraform validate
+```
+
+Revisar plan:
+
+```bash
+terraform plan
+```
+
+Crear infraestructura:
+
+```bash
 terraform apply -auto-approve
 ```
 
-Al finalizar, Terraform mostrará salidas como:
+Al finalizar, Terraform mostrará outputs similares a:
 
 ```text
-cluster_name
-cluster_endpoint
-frontend_ecr_url
-ventas_ecr_url
-despachos_ecr_url
-connect_kubectl
+cluster_name = "innovatech-ep3-eks"
+cluster_endpoint = "..."
+frontend_ecr_url = "..."
+ventas_ecr_url = "..."
+despachos_ecr_url = "..."
+connect_kubectl = "aws eks update-kubeconfig --region us-east-1 --name innovatech-ep3-eks"
 ```
 
 ---
 
-## 🔌 Conectar kubectl con EKS
+## 4️⃣ Conectar kubectl con EKS
 
-Después de crear el clúster:
+Después de crear el clúster, ejecutar:
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name innovatech-ep3-eks
@@ -391,11 +265,20 @@ ip-10-0-10-xxx.ec2.internal   Ready    <none>   5m    v1.xx
 ip-10-0-20-xxx.ec2.internal   Ready    <none>   5m    v1.xx
 ```
 
+Este paso solo es necesario cuando:
+
+- Se usa un computador nuevo.
+- Se recrea el clúster EKS.
+- Se resetea AWS Academy.
+- `kubectl` apunta a un endpoint anterior.
+
 ---
 
-## 📊 Instalar Metrics Server
+## 5️⃣ Instalar Metrics Server
 
-El HPA necesita Metrics Server para leer consumo de CPU y memoria.
+Metrics Server permite obtener métricas de CPU y memoria para el HPA.
+
+Instalar:
 
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -428,7 +311,7 @@ kubectl rollout restart deployment/metrics-server -n kube-system
 kubectl rollout status deployment/metrics-server -n kube-system
 ```
 
-Luego volver a probar:
+Luego validar nuevamente:
 
 ```bash
 kubectl top nodes
@@ -437,18 +320,58 @@ kubectl top pods
 
 ---
 
-## 🚀 Ejecutar despliegue CI/CD
+## 6️⃣ Configurar GitHub Secrets
 
-El despliegue se realiza al hacer push a la rama `deploy`.
+En GitHub ir a:
+
+```text
+Repository → Settings → Secrets and variables → Actions → New repository secret
+```
+
+Configurar los siguientes secrets:
+
+```text
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_SESSION_TOKEN
+MYSQL_ROOT_PASSWORD
+MYSQL_USER
+MYSQL_PASSWORD
+```
+
+Valores usados para MySQL en ambiente de prueba:
+
+```text
+MYSQL_ROOT_PASSWORD=root123
+MYSQL_USER=root
+MYSQL_PASSWORD=root123
+```
+
+Los secrets de AWS deben corresponder a las credenciales temporales actuales del Learner Lab.
+
+---
+
+## 7️⃣ Ejecutar despliegue CI/CD
+
+El pipeline se ejecuta al hacer push a la rama:
+
+```text
+deploy
+```
+
+Flujo recomendado:
 
 ```bash
+git checkout develop
+git pull origin develop
+
 git checkout deploy
 git pull origin deploy
 git merge develop
 git push origin deploy
 ```
 
-También se puede disparar el pipeline con un commit vacío:
+También se puede ejecutar con un commit vacío:
 
 ```bash
 git checkout deploy
@@ -459,51 +382,155 @@ git push origin deploy
 
 ---
 
-## ✅ Comandos de validación
+## 🔄 CI/CD del proyecto
 
-### Ver nodos
+### CI - Continuous Integration
 
-```bash
-kubectl get nodes
+La etapa de CI construye y publica imágenes Docker:
+
+```text
+Código fuente
+   ↓
+Build Docker
+   ↓
+Push a Amazon ECR
 ```
 
-### Ver Pods
+Incluye:
+
+- Build backend ventas.
+- Push backend ventas a ECR.
+- Build backend despachos.
+- Push backend despachos a ECR.
+- Build frontend.
+- Push frontend a ECR.
+
+### CD - Continuous Deployment
+
+La etapa de CD despliega en Amazon EKS:
+
+```text
+Amazon ECR
+   ↓
+kubectl apply / kubectl set image
+   ↓
+Deployments actualizados en EKS
+```
+
+Incluye:
+
+- Conexión con EKS.
+- Creación de Kubernetes Secret.
+- Aplicación de manifiestos.
+- Actualización de imágenes.
+- Validación del rollout.
+- Estado final de Pods, Services y HPA.
+
+---
+
+## 🔐 Manejo de Secrets
+
+El proyecto no utiliza archivos `.env` para credenciales sensibles.
+
+Las credenciales de MySQL se manejan mediante:
+
+- GitHub Secrets.
+- Kubernetes Secret.
+- Archivo `secret.example.yml` como plantilla sin datos reales.
+
+El archivo real:
+
+```text
+infra/k8s/secret.yml
+```
+
+no se sube al repositorio porque está incluido en `.gitignore`.
+
+### Flujo de Secrets
+
+```text
+GitHub Secrets
+      ↓
+GitHub Actions genera secret.yml temporalmente
+      ↓
+kubectl apply -f infra/k8s/secret.yml
+      ↓
+Kubernetes crea mysql-secret
+      ↓
+MySQL y backends consumen credenciales con secretKeyRef
+```
+
+### Comprobar Secret
+
+Después del deploy:
+
+```bash
+kubectl get secret mysql-secret
+```
+
+Resultado esperado:
+
+```text
+NAME           TYPE     DATA   AGE
+mysql-secret   Opaque   3      14m
+```
+
+Ver claves sin mostrar valores sensibles:
+
+```bash
+kubectl describe secret mysql-secret
+```
+
+Resultado esperado:
+
+```text
+Name:         mysql-secret
+Namespace:    default
+Type:         Opaque
+
+Data
+====
+MYSQL_ROOT_PASSWORD:             7 bytes
+SPRING_DATASOURCE_USERNAME:      4 bytes
+SPRING_DATASOURCE_PASSWORD:      7 bytes
+```
+
+---
+
+## ✅ Validación del despliegue
+
+Ver Pods:
 
 ```bash
 kubectl get pods -o wide
 ```
 
-### Ver Deployments
+Ver Deployments:
 
 ```bash
 kubectl get deployments
 ```
 
-### Ver Services
+Ver Services:
 
 ```bash
 kubectl get svc
 ```
 
-### Ver HPA
+Ver HPA:
 
 ```bash
 kubectl get hpa
 ```
 
-### Ver métricas de nodos
+Ver métricas:
 
 ```bash
 kubectl top nodes
-```
-
-### Ver métricas de Pods
-
-```bash
 kubectl top pods
 ```
 
-### Ver estado de rollout
+Ver rollout:
 
 ```bash
 kubectl rollout status deployment/frontend
@@ -517,18 +544,17 @@ kubectl rollout status deployment/backend-despachos
 
 El frontend se expone mediante un Service de tipo `LoadBalancer`.
 
-Obtener la URL pública:
+Obtener URL pública:
 
 ```bash
 kubectl get svc frontend
 ```
 
-El campo `EXTERNAL-IP` mostrará el DNS público del Load Balancer.
-
-Ejemplo:
+Resultado esperado:
 
 ```text
-frontend   LoadBalancer   172.20.xxx.xxx   xxxxx.us-east-1.elb.amazonaws.com   80:xxxxx/TCP
+NAME       TYPE           CLUSTER-IP       EXTERNAL-IP                                      PORT(S)
+frontend   LoadBalancer   172.20.xxx.xxx   xxxxx.us-east-1.elb.amazonaws.com                80:xxxxx/TCP
 ```
 
 Abrir en navegador:
@@ -547,13 +573,13 @@ Probar frontend:
 curl http://DNS_DEL_LOAD_BALANCER/
 ```
 
-Probar backend de ventas a través del frontend/Nginx:
+Probar backend ventas:
 
 ```bash
 curl http://DNS_DEL_LOAD_BALANCER/api/v1/ventas
 ```
 
-Probar backend de despachos a través del frontend/Nginx:
+Probar backend despachos:
 
 ```bash
 curl http://DNS_DEL_LOAD_BALANCER/api/v1/despachos
@@ -563,41 +589,53 @@ curl http://DNS_DEL_LOAD_BALANCER/api/v1/despachos
 
 ## 📜 Logs
 
-### Logs del frontend
+Logs frontend:
 
 ```bash
 kubectl logs deployment/frontend
 ```
 
-### Logs del backend de ventas
+Logs backend ventas:
 
 ```bash
 kubectl logs deployment/backend-ventas
 ```
 
-### Logs del backend de despachos
+Logs backend despachos:
 
 ```bash
 kubectl logs deployment/backend-despachos
 ```
 
-### Logs de MySQL
+Logs MySQL:
 
 ```bash
 kubectl logs deployment/mysql
 ```
 
-### Logs en tiempo real
+Logs en tiempo real:
 
 ```bash
 kubectl logs -f deployment/backend-ventas
+```
+
+Últimas 50 líneas:
+
+```bash
+kubectl logs deployment/backend-ventas --tail=50
+```
+
+Logs de los últimos 5 minutos:
+
+```bash
+kubectl logs deployment/backend-ventas --since=5m
 ```
 
 ---
 
 ## 📈 HPA y Auto Scaling
 
-El proyecto implementa Horizontal Pod Autoscaler con objetivo de CPU al 50%.
+El proyecto implementa HPA con objetivo de CPU al 50%.
 
 Ver HPA:
 
@@ -614,43 +652,17 @@ backend-despachos-hpa   Deployment/backend-despachos   cpu: 3%/50%  2         4 
 frontend-hpa            Deployment/frontend            cpu: 2%/50%  1         3         1
 ```
 
-El umbral de 50% permite escalar los Pods cuando el consumo de CPU supera la mitad de los recursos solicitados, manteniendo disponibilidad ante aumentos de carga.
-
----
-
-## 🔁 Rollout y recuperación
-
-### Ver historial de rollout
+Ver detalle:
 
 ```bash
-kubectl rollout history deployment/frontend
-```
-
-```bash
-kubectl rollout history deployment/backend-ventas
-```
-
-```bash
-kubectl rollout history deployment/backend-despachos
-```
-
-### Reiniciar un Deployment
-
-```bash
-kubectl rollout restart deployment/frontend
-```
-
-### Ver estado después del reinicio
-
-```bash
-kubectl rollout status deployment/frontend
+kubectl describe hpa backend-ventas-hpa
+kubectl describe hpa backend-despachos-hpa
+kubectl describe hpa frontend-hpa
 ```
 
 ---
 
 ## 🧪 Verificación en AWS Console
-
-Además de los comandos, se puede validar desde AWS Console:
 
 ### Amazon EKS
 
@@ -660,11 +672,11 @@ Ruta:
 AWS Console → EKS → Clusters → innovatech-ep3-eks
 ```
 
-Evidencias recomendadas:
+Se puede verificar:
 
 - Cluster activo.
 - Node Group creado.
-- Nodos en estado Ready.
+- Nodos disponibles.
 - Workloads visibles.
 - Services creados.
 
@@ -684,7 +696,7 @@ innovatech-ep3-ventas
 innovatech-ep3-despachos
 ```
 
-Cada repositorio debe contener imágenes con tags:
+Cada repositorio debe tener imágenes con tags:
 
 ```text
 latest
@@ -699,15 +711,13 @@ Ruta:
 AWS Console → EC2 → Load Balancers
 ```
 
-Ahí se puede ver el DNS público del Load Balancer asociado al frontend.
+Ahí se visualiza el DNS público del Load Balancer asociado al frontend.
 
 ---
 
-## 🧹 Apagado seguro del ambiente
+## 🧹 Apagado seguro
 
-Antes de destruir Terraform, se recomienda eliminar los recursos Kubernetes para liberar el Load Balancer y evitar errores de dependencias en subredes.
-
-Desde la raíz del proyecto:
+Antes de destruir Terraform, eliminar recursos Kubernetes para liberar el Load Balancer:
 
 ```bash
 kubectl delete -f infra/k8s/frontend.yml --ignore-not-found=true
@@ -717,7 +727,7 @@ kubectl delete -f infra/k8s/backend-despachos.yml --ignore-not-found=true
 kubectl delete -f infra/k8s/mysql.yml --ignore-not-found=true
 ```
 
-Esperar 2 a 5 minutos para que AWS libere el Load Balancer.
+Esperar 2 a 5 minutos.
 
 Luego destruir infraestructura:
 
@@ -726,48 +736,55 @@ cd infra/terraform
 terraform destroy -auto-approve
 ```
 
----
+Resultado esperado:
 
-## 📸 Evidencias recomendadas para la presentación
+```text
+Destroy complete!
+```
 
-Se recomienda capturar:
+Después detener el laboratorio:
 
-- `terraform apply` exitoso.
-- Cluster EKS creado.
-- Node Group activo.
-- Repositorios ECR con imágenes.
-- GitHub Actions exitoso.
-- Build y push de imágenes.
-- Deploy a EKS exitoso.
-- `kubectl get nodes`.
-- `kubectl get pods -o wide`.
-- `kubectl get svc`.
-- `kubectl get hpa`.
-- `kubectl top nodes`.
-- `kubectl top pods`.
-- Logs de frontend y backends.
-- URL pública del frontend funcionando.
-- Endpoints `/api/v1/ventas` y `/api/v1/despachos`.
+```text
+AWS Academy → End Lab / Stop Lab
+```
 
 ---
 
-## 📌 Buenas prácticas implementadas
+## 🧭 Diagrama de arquitectura
+
+```text
+Usuario → LoadBalancer → Frontend → Backends → MySQL
+GitHub Actions → Amazon ECR → Amazon EKS
+Terraform → VPC + EKS + Node Group + ECR
+```
+
+---
+
+## 📌 Mejores prácticas incluidas
 
 - Infraestructura como Código con Terraform.
 - Separación de Terraform por responsabilidad.
-- Uso de Amazon EKS para orquestación.
+- Uso de Amazon EKS para orquestación de contenedores.
 - Uso de Amazon ECR para imágenes privadas.
-- CI/CD automatizado con GitHub Actions.
-- Uso de Kubernetes Secret para credenciales.
+- Pipeline CI/CD automatizado con GitHub Actions.
+- Uso de GitHub Secrets para credenciales del pipeline.
+- Uso de Kubernetes Secret para credenciales de MySQL.
+- Archivo `secret.example.yml` como plantilla sin datos sensibles.
+- Archivo `secret.yml` ignorado mediante `.gitignore`.
 - No se versionan archivos `.env` ni secretos reales.
-- Uso de Services internos tipo ClusterIP para backends y base de datos.
+- Backends y MySQL internos mediante Services tipo ClusterIP.
 - Exposición pública solo del frontend mediante LoadBalancer.
-- Uso de probes de salud en los contenedores.
+- Probes de salud en contenedores.
 - HPA basado en CPU.
-- Comandos documentados para métricas, logs y recuperación.
+- Comandos documentados para métricas, logs, rollout y apagado.
 
 ---
 
 ## 👥 Equipo
 
-Proyecto desarrollado para la Evaluación Parcial 3 de la asignatura de Introducción a Herramientas DevOps.
+Proyecto desarrollado para la Evaluación Parcial 3 de la asignatura Introducción a Herramientas DevOps.
+
+| Integrante | Rol principal |
+| --- | --- |
+| Ricardo Novoa | Infraestructura Terraform, EKS y documentación |
+| Cristóbal Pérez | Aplicación, Kubernetes y pipeline CI/CD |
