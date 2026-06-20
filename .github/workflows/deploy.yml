@@ -88,6 +88,22 @@ jobs:
             --region $AWS_REGION \
             --name $CLUSTER_NAME
 
+      - name: Crear Secret MySQL en Kubernetes
+        run: |
+          cat > infra/k8s/secret.yml <<EOF
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: mysql-secret
+          type: Opaque
+          stringData:
+            MYSQL_ROOT_PASSWORD: "${{ secrets.MYSQL_ROOT_PASSWORD }}"
+            SPRING_DATASOURCE_USERNAME: "${{ secrets.MYSQL_USER }}"
+            SPRING_DATASOURCE_PASSWORD: "${{ secrets.MYSQL_PASSWORD }}"
+          EOF
+
+          kubectl apply -f infra/k8s/secret.yml        
+
       - name: Aplicar manifiestos Kubernetes
         run: |
           kubectl apply -f infra/k8s/mysql.yml
