@@ -9,7 +9,6 @@ infra/k8s/secret.yml
 *.tfstate.backup
 *.tfstate.*.backup
 .terraform/
-.terraform.lock.hcl
 
 # Builds
 **/target/
