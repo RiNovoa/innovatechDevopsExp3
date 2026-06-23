@@ -1,18 +1,20 @@
+# Variables locales y secretos
 .env
-.env.local
-.env.*.local
+.env.*
+*.pem
+infra/k8s/secret.yml
 
-**/target/
-**/node_modules/
-**/dist/
-**/build/
-
-.vscode/
-*.log
-*.class
-
+# Terraform local
 *.tfstate
 *.tfstate.backup
 *.tfstate.*.backup
 .terraform/
-.terraform.lock.hcl
+
+# Builds
+**/target/
+**/node_modules/
+**/dist/
+
+# Sistema/editor
+.DS_Store
+.vscode/
