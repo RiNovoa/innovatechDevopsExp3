@@ -1,4 +1,4 @@
-# Innovatech DevOps EP3 - AWS EKS, Terraform y CI/CD
+# Innovatech DevOps - AWS EKS, Terraform y CI/CD
 
 ## 📝 Descripción
 
@@ -49,6 +49,8 @@ innovatechDevopsExp3/
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml
+├── docker-compose.yml
+├── docker-compose.env.example
 ├── .gitignore
 └── README.md
 ```
@@ -62,7 +64,8 @@ Para ejecutar el proyecto se necesita:
 - Terraform CLI instalado.
 - AWS CLI instalado.
 - kubectl instalado.
-- Docker instalado.
+- Docker Desktop instalado.
+- Docker Compose disponible.
 - Git instalado.
 - Cuenta AWS Academy Learner Lab activa.
 - Repositorio GitHub con Actions habilitado.
@@ -88,6 +91,18 @@ Terraform crea la infraestructura base en AWS:
   - `innovatech-ep3-frontend`
   - `innovatech-ep3-ventas`
   - `innovatech-ep3-despachos`
+
+### Docker Compose local
+
+Docker Compose permite levantar la aplicación completa en un entorno local usando Docker Desktop:
+
+- Contenedor MySQL con volumen persistente.
+- Contenedor backend de ventas.
+- Contenedor backend de despachos.
+- Contenedor frontend con Nginx.
+- Red interna para comunicación entre servicios.
+- Archivo `.env` local para variables de entorno.
+- Archivo `docker-compose.env.example` como plantilla sin credenciales reales.
 
 ### Kubernetes
 
@@ -116,7 +131,23 @@ El pipeline CI/CD realiza:
 
 ## ⚙️ Flujo de uso
 
-El orden correcto para levantar el sistema es:
+El proyecto contempla dos formas de ejecución:
+
+### Ejecución local para desarrollo y validación
+
+Esta opción se usa para comprobar que la aplicación funciona correctamente en Docker Desktop antes de desplegarla en la nube.
+
+```text
+1. Crear archivo .env local desde docker-compose.env.example
+2. Validar docker-compose.yml
+3. Construir y levantar contenedores con Docker Compose
+4. Revisar contenedores, logs y endpoints
+5. Probar frontend y APIs desde localhost
+```
+
+### Ejecución en la nube con AWS EKS
+
+Esta opción corresponde al despliegue automatizado de la experiencia 3 mediante Terraform, GitHub Actions, Amazon ECR y Amazon EKS.
 
 ```text
 1. Iniciar AWS Academy Learner Lab
@@ -131,7 +162,175 @@ El orden correcto para levantar el sistema es:
 
 ---
 
-## 1️⃣ Iniciar AWS Academy Learner Lab
+## 🐳 Ejecución local con Docker Desktop
+
+Antes de ejecutar el pipeline o desplegar en AWS, el proyecto puede levantarse localmente con Docker Desktop y Docker Compose. Esto permite validar que el frontend, los backends y la base de datos funcionan correctamente en un entorno controlado.
+
+En local, Docker Compose se encarga de construir las imágenes y levantar los servicios necesarios:
+
+```text
+Usuario → http://localhost:3000 → Frontend Nginx
+Frontend Nginx → backend-ventas:8080
+Frontend Nginx → backend-despachos:8081
+Backends → mysql:3306
+```
+
+El frontend se expone en el puerto `3000` del computador, mientras que los backends y MySQL se comunican dentro de la red interna creada por Docker Compose. Nginx funciona como proxy para redirigir las rutas `/api/v1/ventas` y `/api/v1/despachos` hacia los servicios backend correspondientes.
+
+### Variables de entorno locales
+
+Para el entorno local se utiliza un archivo `.env` en la raíz del proyecto. Este archivo contiene valores reales para levantar MySQL y conectar los backends, pero no se sube al repositorio.
+
+El repositorio incluye solamente una plantilla:
+
+```text
+docker-compose.env.example
+```
+
+Ejemplo de plantilla:
+
+```env
+MYSQL_ROOT_PASSWORD=CAMBIAR_PASSWORD_ROOT
+MYSQL_DATABASE=innovatech
+SPRING_DATASOURCE_USERNAME=CAMBIAR_USUARIO
+SPRING_DATASOURCE_PASSWORD=CAMBIAR_PASSWORD
+```
+
+Para ejecutar el proyecto, se debe crear el archivo `.env` local:
+
+```bash
+copy docker-compose.env.example .env
+```
+
+Luego editar `.env` con valores locales de prueba, por ejemplo:
+
+```env
+MYSQL_ROOT_PASSWORD=root123
+MYSQL_DATABASE=innovatech
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=root123
+```
+
+El archivo `.env` queda ignorado por Git para evitar subir credenciales reales al repositorio.
+
+### Levantar el proyecto localmente
+
+Desde la raíz del proyecto, validar primero el archivo `docker-compose.yml`:
+
+```bash
+docker compose config
+```
+
+Si la configuración es válida, levantar los servicios:
+
+```bash
+docker compose up -d --build
+```
+
+Este comando construye las imágenes Docker del frontend y de los backends, descarga la imagen de MySQL si no existe localmente y crea los contenedores definidos en Docker Compose.
+
+### Verificar contenedores
+
+Revisar el estado de los servicios:
+
+```bash
+docker compose ps
+```
+
+Contenedores esperados:
+
+```text
+innovatech-examen-mysql
+innovatech-examen-back-ventas
+innovatech-examen-back-despachos
+innovatech-examen-frontend
+```
+
+Si algún contenedor aparece con estado `Exited`, revisar sus logs.
+
+### Revisar logs
+
+Ver logs generales:
+
+```bash
+docker compose logs -f
+```
+
+Ver logs por servicio:
+
+```bash
+docker compose logs -f mysql
+docker compose logs -f backend-ventas
+docker compose logs -f backend-despachos
+docker compose logs -f frontend
+```
+
+Para salir de los logs:
+
+```text
+Ctrl + C
+```
+
+### Probar servicios locales
+
+Probar salud de los backends:
+
+```bash
+curl http://localhost:8081/actuator/health
+curl http://localhost:8082/actuator/health
+```
+
+Probar endpoints directos:
+
+```bash
+curl http://localhost:8081/api/v1/despachos
+curl http://localhost:8082/api/v1/ventas
+```
+
+Probar endpoints pasando por el frontend y Nginx:
+
+```bash
+curl http://localhost:3000/api/v1/despachos
+curl http://localhost:3000/api/v1/ventas
+```
+
+Abrir frontend en el navegador:
+
+```text
+http://localhost:3000
+```
+
+### Apagar el entorno local
+
+Para detener y eliminar los contenedores creados por Docker Compose:
+
+```bash
+docker compose down --remove-orphans
+```
+
+Para detener el entorno y eliminar también el volumen local de MySQL:
+
+```bash
+docker compose down -v --remove-orphans
+```
+
+El parámetro `-v` borra los datos locales de MySQL, por lo que se recomienda usarlo solo cuando se quiera partir desde una base de datos limpia.
+
+---
+
+## ☁️ Ejecución en la nube con AWS EKS
+
+Después de validar el funcionamiento local con Docker Desktop, el proyecto puede desplegarse en la nube usando **AWS Academy Learner Lab**, **Terraform**, **Amazon EKS**, **Amazon ECR**, **Kubernetes** y **GitHub Actions**.
+
+En este flujo, Terraform crea la infraestructura base en AWS, GitHub Actions construye y publica las imágenes Docker en Amazon ECR, y Kubernetes despliega los servicios dentro del clúster EKS.
+
+```text
+Terraform → VPC + Subredes + EKS + Node Group + ECR
+GitHub Actions → Build Docker → Push Amazon ECR → Deploy Kubernetes
+Usuario → LoadBalancer AWS → Frontend → Backends → MySQL
+```
+
+### 1️⃣ Iniciar AWS Academy Learner Lab
 
 Ingresar a AWS Academy y presionar:
 
@@ -151,7 +350,7 @@ Estas credenciales se usan localmente y también en GitHub Actions.
 
 ---
 
-## 2️⃣ Configurar credenciales AWS localmente
+### 2️⃣ Configurar credenciales AWS localmente
 
 Ejecutar:
 
@@ -192,7 +391,7 @@ Resultado esperado:
 
 ---
 
-## 3️⃣ Crear infraestructura con Terraform
+### 3️⃣ Crear infraestructura con Terraform
 
 Desde la raíz del proyecto:
 
@@ -243,7 +442,7 @@ connect_kubectl = "aws eks update-kubeconfig --region us-east-1 --name innovatec
 
 ---
 
-## 4️⃣ Conectar kubectl con EKS
+### 4️⃣ Conectar kubectl con EKS
 
 Después de crear el clúster, ejecutar:
 
@@ -274,7 +473,7 @@ Este paso solo es necesario cuando:
 
 ---
 
-## 5️⃣ Instalar Metrics Server
+### 5️⃣ Instalar Metrics Server
 
 Metrics Server permite obtener métricas de CPU y memoria para el HPA.
 
@@ -320,7 +519,7 @@ kubectl top pods
 
 ---
 
-## 6️⃣ Configurar GitHub Secrets
+### 6️⃣ Configurar GitHub Secrets
 
 En GitHub ir a:
 
@@ -351,7 +550,7 @@ Los secrets de AWS deben corresponder a las credenciales temporales actuales del
 
 ---
 
-## 7️⃣ Ejecutar despliegue CI/CD
+### 7️⃣ Ejecutar despliegue CI/CD
 
 El pipeline se ejecuta al hacer push a la rama:
 
@@ -430,9 +629,9 @@ Incluye:
 
 ## 🔐 Manejo de Secrets
 
-El proyecto no utiliza archivos `.env` para credenciales sensibles.
+El proyecto separa las credenciales según el entorno de ejecución.
 
-Las credenciales de MySQL se manejan mediante:
+En el entorno local se utiliza un archivo `.env`, que no se sube al repositorio y solo sirve para Docker Compose. En el entorno de nube no se utilizan archivos `.env` con credenciales reales; las credenciales se manejan mediante:
 
 - GitHub Secrets.
 - Kubernetes Secret.
@@ -769,6 +968,8 @@ Terraform → VPC + EKS + Node Group + ECR
 - Pipeline CI/CD automatizado con GitHub Actions.
 - Uso de GitHub Secrets para credenciales del pipeline.
 - Uso de Kubernetes Secret para credenciales de MySQL.
+- Docker Compose para validar el entorno local antes del despliegue.
+- Archivo `docker-compose.env.example` como plantilla para variables locales.
 - Archivo `secret.example.yml` como plantilla sin datos sensibles.
 - Archivo `secret.yml` ignorado mediante `.gitignore`.
 - No se versionan archivos `.env` ni secretos reales.
@@ -787,4 +988,4 @@ Proyecto desarrollado para la Evaluación Parcial 3 de la asignatura Introducci�
 | Integrante | Rol principal |
 | --- | --- |
 | Ricardo Novoa | Infraestructura Terraform, EKS y documentación |
-| Cristóbal Pérez | Aplicación, Kubernetes y pipeline CI/CD |
+| Cristóbal Pérez | Aplicación, Kubernetes, pipeline CI/CD, ejecución local |
