@@ -988,4 +988,4 @@ Proyecto desarrollado para la Evaluación Parcial 3 de la asignatura Introducci�
 | Integrante | Rol principal |
 | --- | --- |
 | Ricardo Novoa | Infraestructura Terraform, EKS y documentación |
-| Cristóbal Pérez | Aplicación, Kubernetes, pipeline CI/CD, ejecución local |
+| Cristóbal Pérez | Aplicación, Kubernetes, pipeline CI/CD y ejecución local |
