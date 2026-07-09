@@ -983,7 +983,7 @@ Terraform → VPC + EKS + Node Group + ECR
 
 ## 👥 Equipo
 
-Proyecto desarrollado para la Evaluación Parcial 3 de la asignatura Introducción a Herramientas DevOps.
+Proyecto desarrollado para la asignatura Introducción a Herramientas DevOps.
 
 | Integrante | Rol principal |
 | --- | --- |
