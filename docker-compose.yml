@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8
-    container_name: academia-mysql
+    container_name: innovatech-examen-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -12,14 +12,16 @@ services:
     networks:
       - academia-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
-  back-despachos:
+  backend-despachos:
     build: ./backend/back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
     image: innovatech-back-despachos:1.0
+    container_name: innovatech-examen-back-despachos
     ports:
       - "8081:8081"
     environment:
@@ -33,9 +35,10 @@ services:
       - academia-net
     restart: unless-stopped
 
-  back-ventas:
+  backend-ventas:
     build: ./backend/back-Ventas_SpringBoot/Springboot-API-REST
     image: innovatech-back-ventas:1.0
+    container_name: innovatech-examen-back-ventas
     ports:
       - "8082:8080"
     environment:
@@ -52,20 +55,20 @@ services:
   frontend:
     build:
       context: ./frontend/front_despacho
-      args:
-        VITE_API_URL: http://localhost:8081
     image: innovatech-frontend:1.0
+    container_name: innovatech-examen-frontend
     ports:
       - "3000:80"
     depends_on:
-      - back-despachos
-      - back-ventas
+      - backend-despachos
+      - backend-ventas
     networks:
       - academia-net
+    restart: unless-stopped
 
 volumes:
   mysql_data:
-    name: innovatech_mysql_data
+    name: innovatech_examen_mysql_data
 
 networks:
   academia-net:
